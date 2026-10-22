@@ -1,17 +1,38 @@
 import assert from 'assert';
-import {latestRecords,previousRecord,variation,compareRecords} from '../src/analytics.mjs';
-const row=(date,cases,extra={})=>({country:'Brasil',city:'São Paulo',virus:'COVID-19',source:'Manual',date,cases,recovered:0,deaths:0,...extra});
-const old=row('2026-01-01',100),current=row('2026-01-03',120),foreign=row('2026-01-02',900,{source:'Outra fonte'}),missing=row('2026-01-03',500,{city:'Rio'});
-assert.equal(latestRecords([current,old]).length,1);
-assert.equal(latestRecords([current,old])[0].cases,120);
-assert.equal(previousRecord([current,old,foreign],current),old);
-assert.equal(previousRecord([current,foreign],current),null);
-assert.equal(variation(120,100).label,'+20,0%');
-assert.equal(variation(80,100).direction,'down');
-assert.equal(variation(100,0).direction,'new');
-assert.equal(variation(0,0).label,'0,0%');
-assert.equal(variation(100,null).label,'Sem histórico');
-const comparison=compareRecords([current,missing],[current,old,missing],'cases');
-assert.equal(comparison.label,'+20,0%');assert.equal(comparison.count,1);assert.equal(comparison.total,2);
-assert.equal(compareRecords([old],[current,old],'cases').direction,'unknown');
-console.log('Comparações verificadas: alta, queda, base zero, ausência de histórico, fontes e cobertura parcial.');
+import { latestRecords, previousRecord, variation, compareRecords } from '../src/analytics.mjs';
+const row = (date, cases, extra = {}) => ({
+  country: 'Brasil',
+  city: 'São Paulo',
+  virus: 'COVID-19',
+  source: 'Manual',
+  date,
+  cases,
+  recovered: 0,
+  deaths: 0,
+  ...extra,
+});
+const old = row('2026-01-01', 100);
+const current = row('2026-01-03', 120);
+const foreign = row('2026-01-02', 900, {
+  source: 'Outra fonte',
+});
+const missing = row('2026-01-03', 500, {
+  city: 'Rio',
+});
+assert.equal(latestRecords([current, old]).length, 1);
+assert.equal(latestRecords([current, old])[0].cases, 120);
+assert.equal(previousRecord([current, old, foreign], current), old);
+assert.equal(previousRecord([current, foreign], current), null);
+assert.equal(variation(120, 100).label, '+20,0%');
+assert.equal(variation(80, 100).direction, 'down');
+assert.equal(variation(100, 0).direction, 'new');
+assert.equal(variation(0, 0).label, '0,0%');
+assert.equal(variation(100, null).label, 'Sem histórico');
+const comparison = compareRecords([current, missing], [current, old, missing], 'cases');
+assert.equal(comparison.label, '+20,0%');
+assert.equal(comparison.count, 1);
+assert.equal(comparison.total, 2);
+assert.equal(compareRecords([old], [current, old], 'cases').direction, 'unknown');
+console.log(
+  'Comparações verificadas: alta, queda, base zero, ausência de histórico, fontes e cobertura parcial.'
+);
