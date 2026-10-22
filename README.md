@@ -1,154 +1,270 @@
-# Atlas — Vigilância epidemiológica
+# Atlas Health — Monitoramento Epidemiológico
 
-Painel local em React e Java inspirado na referência fornecida: globo 3D, tema escuro, marcadores geográficos, indicadores, cadastro, exclusão e exportação CSV.
+Epidemiological monitoring platform featuring an interactive 3D globe, official health data, and outbreak news. Built with React and Java, with support for Portuguese, English, and German.
 
-## Executar no Windows
+Plataforma de monitoramento epidemiológico com globo 3D, consulta de dados públicos, notícias de surtos e administração de registros por região.
 
-1. Abra `iniciar-backend.cmd`.
-2. Abra `iniciar-frontend.cmd`.
-3. Acesse o endereço mostrado pelo frontend (normalmente http://127.0.0.1:5173; se a porta estiver ocupada, o Vite escolhe a próxima).
+**React 18 · Java 17 · Spring Boot · Three.js · H2**
 
-O frontend usa seu Node **14.21.3**, React 18.2 e Vite 4.5.14. O Node 14 e essa linha do Vite são antigos; a compatibilidade foi preservada para seu ambiente. Planeje atualizar o Node antes de disponibilizar o sistema na internet.
+[Visão geral](#visão-geral) · [Fontes reais](#fontes-reais-e-integrações) · [Executar](#como-executar) · [API](#api) · [Autor](#autor)
 
-O backend requer **JDK 17+ e Maven 3.6.3+**. Os scripts usam as ferramentas portáteis da pasta `.tools`, quando presentes, sem mudar seu Node ou instalar Java globalmente. Se não estiverem presentes, instale o JDK e Maven e configure JAVA_HOME/PATH.
+## Prévia do sistema
 
-Alternativa pelo terminal, em duas janelas:
+![Atlas Health: painel de dados oficiais com globo 3D, notificações de dengue por município e comunicados da OMS](docs/images/atlas-official-dashboard.png)
 
-```powershell
+*Captura real do aplicativo, feita em 22/10/2026. Os números correspondem ao período selecionado na imagem e não representam uma contagem ao vivo.*
+
+## Visão geral
+
+O Atlas reúne observações epidemiológicas de fontes públicas e as apresenta com localização, doença, período de referência e origem. A home é pública; somente o proprietário precisa entrar para cadastrar, importar ou administrar as sincronizações.
+
+### Funcionalidades
+
+- Globo 3D interativo com texturas da Terra, nuvens, atmosfera, fronteiras e marcadores geográficos.
+- Consulta de notificações por fonte, doença, período e busca por país, estado ou cidade.
+- Detalhes do local selecionado e link para a fonte original.
+- Sincronização automática em segundo plano, cache persistente e status de atualização.
+- Notícias e alertas da OMS na lateral, com busca por título e link do comunicado.
+- Cadastro de registros agregados e importação JSON com validação e prévia antes da publicação.
+- Histórico de observações, atualização sem duplicação e exportação CSV da base cadastrada.
+- Área do proprietário com autenticação, controle de sincronizações e exclusão de registros próprios.
+- Interface em **português, inglês e alemão**, incluindo formatos de datas, números e percentuais.
+
+### Organização dos dados
+
+| Área | Conteúdo |
+| --- | --- |
+| **Dados oficiais** | Observações sincronizadas da OMS/GHO e do InfoDengue, consultadas por fonte e período. |
+| **Base cadastrada / Registros** | Cadastros do proprietário, importações JSON e a integração opcional de COVID-19. |
+| **Notícias e alertas** | Comunicados de surtos publicados pela OMS, em seu idioma original. |
+
+A home abre em **Dados oficiais**. Se não houver registros próprios, a visão geral da base cadastrada direciona para os dados das APIs. Notícias não são convertidas automaticamente em números de casos.
+
+## Fontes reais e integrações
+
+Os intervalos abaixo são os agendamentos implementados no Atlas. Eles não mudam a frequência de publicação de cada provedor.
+
+| Fonte | Dados utilizados no sistema | Consulta no Atlas | Situação |
+| --- | --- | --- | --- |
+| [OMS / Global Health Observatory](https://www.who.int/data/gho/info/gho-odata-api) | Casos notificados de sarampo, coqueluche e difteria, por país e ano. | A cada 24 horas | Integrada; habilitada por padrão. |
+| [InfoDengue](https://info.dengue.mat.br/services/api) | Notificações semanais de dengue, chikungunya e zika, quando disponíveis, nos municípios configurados. | A cada 12 horas | Integrada; habilitada por padrão. |
+| [OMS / Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news) | Até 30 comunicados recentes, com título, data e link oficial. | A cada 30 minutos | Integrada; habilitada por padrão. |
+| [disease.sh](https://disease.sh/docs/) | Totais nacionais de COVID-19, com a data informada pelo provedor. | Manual ou a cada 6 horas | Opcional; sincronização automática desativada por padrão. Não é uma API da OMS. |
+| [Ministério da Saúde / SINAN](https://dadosabertos.saude.gov.br/dataset/arboviroses-dengue) | Monitoramento de conectividade da API oficial. | Verificação programada; nova tentativa após falha em 30 minutos. | **Importação numérica pendente.** Não publica contagens no Atlas. |
+
+### OMS / GHO
+
+A integração usa a API OData e os indicadores:
+
+| Indicador | Doença | Unidade |
+| --- | --- | --- |
+| `WHS3_62` | Sarampo | Casos notificados por país e ano |
+| `WHS3_43` | Coqueluche | Casos notificados por país e ano |
+| `WHS3_41` | Difteria | Casos notificados por país e ano |
+
+São consultados os três anos anteriores completos. O importador usa a dimensão `COUNTRY`, sem somar estratificações adicionais. Valores ausentes e locais sem referência geográfica são omitidos, não convertidos em zero. Esses indicadores anuais não mostram casos ativos de hoje.
+
+### InfoDengue
+
+O conector utiliza diretamente a API pública `https://info.dengue.mat.br/api/alertcity`. O Atlas não depende da API autenticada do Mosqlimate nem exige sua chave para essa integração.
+
+Cobertura municipal inicial:
+
+| Município | UF | Código IBGE |
+| --- | --- | --- |
+| São Paulo | SP | `3550308` |
+| Rio de Janeiro | RJ | `3304557` |
+| Belo Horizonte | MG | `3106200` |
+| Curitiba | PR | `4106902` |
+| Fortaleza | CE | `2304400` |
+| Brasília | DF | `5300108` |
+
+O sistema consulta o ano corrente e o anterior, usa `casos` — notificações — e não substitui esses valores por `casos_est`, que são estimativas. Somente registros com `Localidade_id = 0` são utilizados, evitando somar o total municipal com suas subdivisões. Dados semanais são preliminares e podem receber revisões. A cobertura atual não inclui todos os municípios brasileiros.
+
+### SINAN: limite atual
+
+A conexão com a API do Ministério da Saúde falhou no ambiente de desenvolvimento. O contrato de resposta e a paginação ainda precisam ser validados; **o importador numérico SINAN não está implementado**. O sistema mostra essa pendência e preserva os dados das demais fontes. Restaurar a conexão, sozinho, não ativa a importação.
+
+O InfoDengue já utiliza dados de notificações do SINAN. Uma futura integração direta deverá considerar essa sobreposição para evitar contagem duplicada.
+
+## Como os dados são atualizados
+
+1. O backend verifica tarefas de sincronização após a inicialização e, depois, a cada minuto.
+2. As consultas numéricas oficiais são processadas em uma fila em segundo plano.
+3. O lote é validado e salvo em uma transação. Reimportar a mesma fonte, local, doença e período atualiza a observação existente.
+4. Uma falha preserva o cache e a última sincronização bem-sucedida. Há nova tentativa após 30 minutos.
+5. A home de dados oficiais consulta o cache a cada 30 segundos; as notícias são consultadas pela interface a cada 5 minutos.
+
+**O backend precisa permanecer ligado para sincronizar.** A data de sincronização indica quando o Atlas consultou a fonte; o período de referência indica a quais semanas ou anos os números pertencem.
+
+## Tecnologias
+
+| Camada | Tecnologias |
+| --- | --- |
+| Frontend | React 18.2, Vite 4.5.14, JavaScript, CSS, Lucide |
+| Visualização | Three.js 0.149, OrbitControls, TopoJSON |
+| Backend | Java 17, Spring Boot 3.5.7, Spring Web, Spring Data JPA |
+| Autenticação | Spring Security, BCrypt, sessões e CSRF |
+| Persistência | H2 em arquivo local |
+| Verificação | JUnit, Spring Boot Test, MockMvc e verificações JavaScript |
+
+## Como executar
+
+### Requisitos
+
+- Node.js e npm. O frontend foi validado no **Node 14.21.3**, preservando a compatibilidade com o ambiente original.
+- **JDK 17** e **Maven 3.6.3 ou superior** para o backend.
+- Navegador com WebGL para o globo 3D; os dados também podem ser consultados na tabela.
+- Conexão à internet para sincronizar as fontes externas.
+
+O Node 14 é legado. Antes de atualizar as dependências ou preparar uma publicação, valide a migração para uma versão suportada do Node.
+
+### Instalação pelo terminal
+
+```bash
+git clone https://github.com/samaelsimoes/atlas-health-epidemiologico.git
+cd atlas-health-epidemiologico
+```
+
+Em um terminal, inicie o backend:
+
+```bash
 cd backend
 mvn spring-boot:run
 ```
 
-```powershell
+Em outro terminal, a partir da raiz do projeto, inicie o frontend:
+
+```bash
 cd frontend
-npm install --registry=https://registry.npmjs.org
+npm install
 npm run dev
 ```
 
-## Home pública e acesso do proprietário
+Abra o endereço informado pelo Vite, normalmente **http://127.0.0.1:5173/#official**. O backend usa **http://127.0.0.1:8085** e o frontend encaminha `/api` para essa porta. Se a porta do frontend estiver ocupada, use o endereço exibido no terminal.
 
-A home abre diretamente, sem login, e consulta os registros publicados. Use os filtros por país, estado/província e cidade/região. A base real começa vazia; a demonstração pode ser aberta explicitamente e é identificada como fictícia.
+### Scripts do Windows
 
-Somente o dono do sistema usa **Área do proprietário** (`/#admin`). Na primeira configuração desta área, defina nome, e-mail e uma senha de pelo menos 12 caracteres (máximo de 72 bytes). Não há senha padrão. A configuração inicial é bloqueada assim que a primeira conta é criada.
+Na raiz, execute `iniciar-backend.cmd` e `iniciar-frontend.cmd`. Os scripts aproveitam JDK e Maven portáteis em `.tools` quando presentes. Essa pasta é ignorada pelo Git; em um clone novo, configure Java e Maven no ambiente.
 
-Nos próximos acessos, use seu e-mail e senha. O botão **Sair** encerra a sessão. As consultas são públicas. O backend protege cadastros, exclusões e importações, com Spring Security, hash BCrypt (custo 12), sessão em cookie HttpOnly/SameSite=Strict e proteção CSRF. A sessão expira após 30 minutos de inatividade no servidor; reiniciar o backend encerra as sessões. Não guardamos senha nem token de autenticação no localStorage.
+### Backend no IntelliJ IDEA
 
-Há limite de 10 tentativas de login/configuração por minuto e endereço IP. Esta versão tem uma conta administradora e uma base compartilhada; ainda não tem recuperação de senha por e-mail, gestão de usuários ou múltiplos perfis. Guarde sua senha.
+1. Abra `backend/pom.xml` como projeto Maven.
+2. Selecione JDK 17 como SDK e como JDK do Maven.
+3. Execute `br.com.atlas.AtlasApplication`.
+4. Inicie o frontend separadamente. Execute somente uma instância do backend na porta 8085.
 
-## Usar
+## Acesso do proprietário
 
-- A home inicia na **base publicada**, sem exigir conta. O botão **Ver demonstração** apresenta dados fictícios, que não são gravados no banco.
-- Use **Consultar dados publicados** para consultar os registros reais. Uma base nova começa vazia.
-- Em **Novo registro**, informe país, estado/província (quando disponível), cidade/região, coordenadas, doença, data e totais. O cadastro é persistido pelo Java. Latitude e longitude usam graus decimais.
-- Em **Fontes de dados**, use **Importar COVID-19** para consultar https://disease.sh/v3/covid-19/countries. A fonte pode ter dados antigos ou estar indisponível. Sua data original é mostrada na tabela. Não há promessa de tempo real.
-- Uma nova importação atualiza o snapshot da mesma data da disease.sh e preserva snapshots de datas anteriores, em uma transação, mantendo também os cadastros manuais. Respostas inválidas não apagam os dados existentes.
-- Em **Registros**, exporte os registros filtrados em CSV ou exclua um registro da base real.
-- Arraste o globo, use a roda para zoom ou pause a rotação. Clique nos pontos para consultar o local. A tabela oferece a mesma consulta caso WebGL esteja indisponível.
+A consulta pública não exige conta. Para administrar, abra **Área do proprietário** (`/#admin`).
 
-## Interpretação dos dados
+Na primeira execução, configure seu nome, e-mail e senha de pelo menos **12 caracteres**, respeitando o limite de **72 bytes**. Não existem credenciais padrão. Após a configuração inicial, o acesso usa e-mail e senha.
 
-A home usa o registro mais recente de cada combinação de local, doença e fonte, dentro do filtro de data. A tabela de Registros mantém todas as datas. Os percentuais comparam cada snapshot com o snapshot anterior da mesma combinação; o intervalo pode variar por local e não é necessariamente diário. A cobertura (locais comparáveis / locais exibidos) aparece abaixo de cada variação. Locais sem histórico não entram no cálculo percentual. Uma base anterior zero é identificada sem calcular uma porcentagem infinita.
+As senhas são armazenadas como hash BCrypt. Mutações exigem autenticação e CSRF; a sessão utiliza cookie HttpOnly e SameSite=Strict. Há limite de tentativas de login e expiração de sessão após 30 minutos de inatividade. Esta versão oferece uma conta proprietária e não inclui recuperação de senha por e-mail.
 
-Os totais não estimam pessoas únicas. Não misture totais nacionais com suas cidades nem fontes sobrepostas quando quiser medir uma população sem duplicação. Os casos ativos são calculados como confirmados menos recuperados menos óbitos. Uma combinação manual de país, estado, cidade, doença e data não pode ser cadastrada duas vezes. Países, cidades e doenças devem ser escritos de forma consistente.
+## Cadastro e importação JSON
 
-No modo demonstração, há snapshots fictícios de duas datas para visualizar as variações. Na base real, é necessário cadastrar ou importar datas anteriores. Uma fonte que repete o mesmo snapshot não gera variação nova.
+Em **Importação e fontes**, cadastre registros ou importe um JSON. Use **Validar e visualizar** para revisar sem gravar, depois **Publicar no globo** para confirmar a importação.
 
-Os pontos indicam registros agregados, não contaminação de toda uma área. O painel não faz inferência de risco clínico. Não cadastre dados pessoais de pacientes.
+O [modelo de importação](examples/importacao-modelo.json) contém dados fictícios e deve ser substituído pelos dados da sua fonte. A interface aceita arquivos de até 2 MB e o backend aceita até 2.000 registros por lote.
 
-## Banco e API
+Campos obrigatórios: `country`, `city`, `virus`, `latitude`, `longitude`, `cases`, `recovered`, `deaths` e `date` (`AAAA-MM-DD`). `state` é opcional. `classification` aceita `Doença`, `Surto`, `Epidemia` ou `Pandemia`; o padrão é `Doença`.
 
-H2 em arquivo, salvo em `%USERPROFILE%/.atlas-health/atlas.mv.db`. O banco fica fora da pasta OneDrive para evitar problemas com sincronização e gravação. Os dados sobrevivem a reinicializações. Faça backup do diretório `%USERPROFILE%/.atlas-health` com o servidor parado. O H2 permite testar sem instalar PostgreSQL. Para uso com vários usuários, migrar para PostgreSQL, configurar migrações, gestão de usuários e permissões, HTTPS e backups.
+Esses valores do contrato JSON permanecem iguais nos três idiomas. A classificação deve vir da fonte ou do proprietário; não é calculada a partir da quantidade de casos. Lotes inválidos não são publicados parcialmente.
 
-O servidor fica limitado a `127.0.0.1:8085`. A interface usa o proxy `/api` do Vite. O login é obrigatório apenas para administrar. O aplicativo continua destinado ao uso local; uma publicação deve usar HTTPS e cookie Secure.
+## Persistência e interpretação
 
-| Método | Rota | Finalidade |
-|---|---|---|
-| GET | /api/health | Estado do servidor |
-| GET | /api/records | Listar registros |
-| POST | /api/records | Cadastrar dados agregados |
-| DELETE | /api/records/{id} | Excluir registro |
-| POST | /api/imports/covid | Importar totais de países |
+O banco é salvo em `~/.atlas-health/atlas.mv.db` — no Windows, `%USERPROFILE%\.atlas-health\atlas.mv.db`. Fica fora do repositório e mantém os dados entre reinicializações. Faça backup da pasta `.atlas-health` com o backend parado.
 
-Exemplo de cadastro:
+- Compare uma fonte, uma doença e um período por vez. Totais de fontes, países e cidades podem se sobrepor.
+- Notificações, confirmações e estimativas não são medidas equivalentes.
+- Ausência de dados não significa zero. Um zero publicado pela fonte é diferente de um valor indisponível.
+- Recuperados, óbitos e casos ativos não são fornecidos pelas consultas GHO/InfoDengue utilizadas; o painel oficial não inventa esses totais.
+- Na base cadastrada, casos ativos são calculados a partir dos totais informados: confirmados menos recuperados e óbitos.
+- Marcadores nacionais usam coordenadas de capital como referência geográfica. Não representam um surto restrito àquela cidade.
+- Pontos no globo representam registros agregados. Não indicam contaminação de toda uma região nem calculam risco clínico.
 
-```json
-{"country":"Brasil","city":"São Paulo","virus":"COVID-19","latitude":-23.55,"longitude":-46.63,"cases":100,"recovered":80,"deaths":2,"date":"2026-01-01"}
+## Estrutura do repositório
+
+```text
+backend/             API Java, conectores, autenticação e testes
+frontend/            Interface React e recursos do globo
+  public/            Texturas e fronteiras geográficas
+  scripts/           Verificações de idioma e comparações
+docs/images/         Capturas utilizadas neste README
+examples/            Modelo JSON para importação
+iniciar-backend.cmd  Inicialização no Windows
+iniciar-frontend.cmd Inicialização no Windows
 ```
 
-## Verificação
+## API
 
-```powershell
-cd frontend
+| Método | Rota | Acesso / finalidade |
+| --- | --- | --- |
+| GET | `/api/health` | Público; saúde do backend |
+| GET | `/api/surveillance?source=infodengue` | Público; observações e status. Aceita `gho`, `infodengue` ou `sinan`. |
+| GET | `/api/news` | Público; comunicados da OMS em cache |
+| GET | `/api/records` | Público; registros da base cadastrada |
+| GET | `/api/auth/status` | Público; informa se o proprietário já foi configurado |
+| POST | `/api/auth/setup` | Configuração inicial, disponível enquanto não houver proprietário; exige CSRF |
+| POST | `/api/auth/login` | Login por formulário; exige CSRF |
+| PUT | `/api/surveillance/{source}` | Proprietário; habilita ou pausa uma fonte |
+| POST | `/api/surveillance/{source}/refresh` | Proprietário; enfileira sincronização e retorna HTTP 202 |
+| GET / PUT | `/api/feeds` | Proprietário; preferências de notícias e COVID-19 |
+| POST | `/api/feeds/news/refresh` | Proprietário; atualiza notícias |
+| POST / DELETE | `/api/records` / `/api/records/{id}` | Proprietário; cadastro e exclusão |
+| POST | `/api/imports/preview` / `/api/imports/json` | Proprietário; prévia e publicação de JSON |
+| POST | `/api/imports/covid` | Proprietário; importação opcional de COVID-19 |
+
+Todas as mutações exigem CSRF. O token e o nome do cabeçalho podem ser obtidos em `GET /api/auth/csrf`, mantendo o cookie de sessão.
+
+## Verificações
+
+No diretório `frontend`:
+
+```bash
 npm run build
 node scripts/check-analytics.mjs
+node scripts/check-i18n.mjs
 ```
 
-```powershell
-cd backend
-mvn test
-mvn package
+No diretório `backend`:
+
+```bash
+mvn -Datlas.feeds.initial-delay=3600000 test
 ```
 
-Validação realizada: build React no Node 14.21.3 e testes Java de registros e autenticação. Os testes cobrem cadastro e consulta via API, duplicidade, totais inconsistentes, coordenadas obrigatórias, contagens fracionárias, exclusão e importação transacional sem duplicação.
+A propriedade acima adia o agendador durante os testes. A suíte cobre autenticação, CSRF, validação, importação transacional, revisão sem duplicação, períodos, agendamento e preservação de dados após falhas.
 
-## Fontes e recursos
+## Solução de problemas
 
-- Fonte externa opcional: [disease.sh](https://disease.sh/docs/). Nenhuma importação é executada automaticamente.
-- Geografia: `frontend/public/countries-110m.json`, [world-atlas 2.0.2](https://github.com/topojson/world-atlas), derivado de Natural Earth (domínio público).
-- Ícones: Lucide (ISC). Fontes DM Sans e Space Grotesk via Google Fonts, com fontes locais de fallback.
-- Texturas da Terra (superfície, relevo, reflexo e nuvens): [exemplos do Three.js r149](https://github.com/mrdoob/three.js/tree/r149/examples/textures/planets), distribuídas localmente em `frontend/public/textures`. O globo inclui iluminação direcional, atmosfera, nuvens em movimento e estrelas.
-- O globo usa Three.js; geometria geográfica é distribuída localmente, sem depender de um serviço de mapas durante a execução.
+| Sintoma | O que conferir |
+| --- | --- |
+| Dados oficiais ainda vazios | Aguarde a primeira sincronização, verifique internet, fonte, doença, período e status exibido. |
+| Somente a base cadastrada está vazia | Use Dados oficiais; a base própria depende de cadastros ou importações. |
+| API desconectada ou rotas novas retornam 401 | Confirme a porta 8085 e execute a versão atual do backend. |
+| Porta 8085 ocupada | Verifique se já existe outra instância do Atlas antes de iniciar mais uma. |
+| SINAN indisponível | A integração numérica está pendente; OMS e InfoDengue funcionam independentemente. |
+| Globo não é renderizado | Confira suporte a WebGL e consulte os dados na tabela. |
+| Maven utiliza configurações corporativas | Verifique `backend/.mvn/maven.config`, que aponta para as configurações locais do projeto. |
 
-Ainda não inclui séries históricas com gráficos de evolução, edição de registros, vacinação, recuperação de senha, gestão de usuários nem integração com outras fontes epidemiológicas.
+## Créditos e recursos
 
-A fonte disease.sh fornece totais por país. Dados por estado e cidade precisam ser cadastrados pelo proprietário ou integrados a uma fonte que ofereça esse detalhamento; o sistema não infere cidades a partir de totais nacionais.
+- Dados epidemiológicos: OMS/GHO, InfoDengue e integração opcional disease.sh, conforme a tabela de fontes.
+- Comunicados: [WHO Disease Outbreak News](https://www.who.int/emergencies/disease-outbreak-news).
+- Referências geográficas de países: [World Bank Country API](https://api.worldbank.org/v2/country?format=json&per_page=400), usadas no arquivo `country-locations.json`.
+- Fronteiras: [world-atlas 2.0.2](https://github.com/topojson/world-atlas), derivado de Natural Earth.
+- Texturas da Terra: [exemplos do Three.js r149](https://github.com/mrdoob/three.js/tree/r149/examples/textures/planets), distribuídas em `frontend/public/textures`.
+- Ícones: [Lucide](https://lucide.dev/). Fontes: DM Sans e Space Grotesk.
 
-## Importação de doenças e eventos (JSON)
+O Atlas é um projeto independente e não é um produto oficial da OMS, do Ministério da Saúde ou dos demais provedores. Os dados e recursos de terceiros seguem seus respectivos termos de uso e atribuição.
 
-O proprietário entra em **Área do proprietário → Importação e fontes**. Não há credenciais padrão: na primeira configuração, defina seu próprio nome, e-mail e senha. A home permanece pública.
+## Escopo atual
 
-Você pode cadastrar cada local por **Novo registro** ou importar um arquivo JSON. Use **Baixar modelo JSON**, substitua os dados fictícios, selecione o arquivo e informe o nome da fonte/boletim. **Validar e visualizar** não grava dados. Confira a prévia e use **Publicar no globo** para gravar todos os registros em uma transação. Depois, consulte-os na home pública.
+Aplicação configurada para execução local em `127.0.0.1`, com banco H2 e uma conta proprietária. Hospedagem pública, HTTPS, banco de produção, recuperação de senha e múltiplos perfis ainda precisam de implementação ou configuração específica. O projeto não inclui dados pessoais de pacientes.
 
-O arquivo pode ser um objeto com `source` e `records`, como em `examples/importacao-modelo.json`, ou um array de registros com a fonte preenchida no formulário. A interface aceita até 2 MB e o backend aceita até 2.000 registros por lote.
+## Autor
 
-Campos por registro: `country`, `city`, `virus`, `latitude`, `longitude`, `cases`, `recovered`, `deaths` e `date` (AAAA-MM-DD) são obrigatórios. `state` é opcional; `classification` é opcional e aceita `Doença`, `Surto`, `Epidemia` ou `Pandemia`, com padrão `Doença`. A classificação é declarada pela fonte ou pelo proprietário; nunca é calculada a partir da contagem de casos.
+**Developed by Samael Pereira Simoes**
 
-Reimportar a mesma fonte, país, estado, cidade, doença e data atualiza o snapshot. Datas anteriores e fontes diferentes são preservadas. Linhas inválidas ou duplicadas dentro do lote rejeitam a importação inteira. Fontes distintas podem se sobrepor e não representam pessoas únicas ao serem somadas.
-
-Endpoints protegidos por login do proprietário e CSRF: `POST /api/imports/preview` e `POST /api/imports/json`, ambos recebem `{source, records}`. Esse contrato é a entrada para futuros adaptadores de API. Esta alteração não cria uma conexão automática com uma API genérica. A integração COVID-19 existente continua opcional.
-
-Validação da implementação: 18 testes Java aprovados, incluindo prévia sem gravação, reimportação, classificação, preservação de fontes, rejeição integral de lotes inválidos e restrições de acesso.
-
-## Idiomas
-
-A interface oferece Português, English e Deutsch no seletor do topo da home e da tela de acesso. A preferência é salva neste navegador. Datas, números, percentuais, formulários e mensagens acompanham o idioma escolhido. Nomes de doenças, locais e fontes são preservados. As chaves JSON e os valores de classificação do contrato de importação continuam os mesmos, independentemente do idioma da interface.
-
-Verificação das traduções: `node scripts/check-i18n.mjs` na pasta `frontend`.
-
-## Notícias e atualização automática
-
-A home pública consulta `/api/news` e exibe até 30 comunicados recentes da OMS (WHO Disease Outbreak News), com título original, fonte, data e link oficial. A busca é textual nos títulos globais e independente dos filtros do globo; não faz classificação geográfica automática. O backend sincroniza a OMS na inicialização e depois a cada 30 minutos. O cache e as preferências ficam no H2; falhas preservam os dados anteriores e a última sincronização bem-sucedida.
-
-Em **Área do proprietário → Importação e fontes → Atualizações automáticas**, é possível pausar a OMS, buscar notícias imediatamente e habilitar a importação de COVID-19 da disease.sh a cada 6 horas (desativada por padrão). O agendador verifica tarefas vencidas a cada minuto e tenta novamente após 30 minutos em caso de falha. O backend precisa permanecer em execução. A home consulta alterações dos registros a cada minuto e notícias a cada 5 minutos, preservando os filtros.
-
-Notícias não geram contagens de casos. A integração numérica atual cobre somente totais nacionais de COVID-19, preservando a data informada pelo provedor. Outras doenças e dados estaduais/municipais dependem de cadastro, importação JSON ou novos adaptadores estruturados. O sistema não infere casos confirmados, recuperados, coordenadas ou classificação epidemiológica de manchetes. Os comunicados podem falar de suspeitas ou eventos sem risco de epidemia.
-
-API: `GET /api/news` é público. `GET /api/feeds`, `PUT /api/feeds` (`{who: boolean, covid: boolean}`) e `POST /api/feeds/news/refresh` exigem proprietário; mutações exigem CSRF. Fontes externas são fixas (OMS e disease.sh), sem URLs arbitrárias fornecidas pelos visitantes. Reinicie o backend para carregar esta funcionalidade.
-
-Referência oficial da API de comunicados: https://www.who.int/api/emergencies/diseaseoutbreaknews/sfhelp
-
-## Vigilância numérica por fontes oficiais
-
-A home abre em **Dados oficiais**, separada da **Base cadastrada**. O visitante escolhe uma fonte, doença e período; as consultas não somam fontes sobrepostas, anos distintos ou notificações e estimativas. Dados ausentes aparecem como travessão; zero só aparece quando a fonte informa zero. Recuperados, óbitos e casos ativos não são calculados a partir de notificações.
-
-- **OMS / GHO**: `WHS3_62` (sarampo), `WHS3_43` (coqueluche) e `WHS3_41` (difteria). Consulta diária; três anos anteriores completos, totais nacionais anuais, somente dimensão COUNTRY e sem estratificações adicionais. Valores nulos/países sem referência geográfica são omitidos, não convertidos em zero. Anos históricos não são dados em tempo real.
-- **InfoDengue**: API pública direta `https://info.dengue.mat.br/api/alertcity`, sem depender da chave exigida pelo Mosqlimate. Dengue, chikungunya e zika; seis municípios iniciais: São Paulo, Rio de Janeiro, Belo Horizonte, Curitiba, Fortaleza e Brasília. Consulta a cada 12 horas para ano corrente e anterior. Usa `casos` (notificações), nunca `casos_est` (estimativa); semanas são preliminares e revisáveis. Somente Localidade_id=0 para evitar somar subdivisões com o total municipal. A cobertura não representa todos os municípios brasileiros.
-- **Ministério da Saúde / SINAN**: integração numérica **pendente**. A API oficial encerrou a conexão nesta máquina e sua resposta/paginação não pôde ser validada. Há somente monitoramento de conectividade e status explícito de indisponibilidade; não há importador SINAN implementado. Mesmo se a conexão voltar, o contrato precisa ser validado e o adaptador implementado antes da publicação de números. InfoDengue já utiliza notificações do SINAN: essas fontes não deverão ser somadas.
-
-As duas fontes numéricas operacionais são habilitadas por padrão e consultadas após iniciar o backend. SINAN também tem monitoramento habilitado. Falhas tentam novamente após 30 minutos, preservando cache e última sincronização bem-sucedida. O proprietário pode sincronizar ou pausar cada fonte em Dados oficiais. As consultas externas rodam numa fila em segundo plano, sem bloquear a home. Cada lote validado é publicado atomicamente e reimportações atualizam a mesma observação por fonte/local/doença/período. A home lê o cache a cada 30 segundos.
-
-API pública `GET /api/surveillance?source=gho|infodengue|sinan`. Controles do proprietário com CSRF: `PUT /api/surveillance/{source}` com `{enabled: boolean}` e `POST /api/surveillance/{source}/refresh` (202, enfileirado). Nenhuma chave nem URL arbitrária é recebida dos visitantes.
-
-Localização de países: `country-locations.json`, metadados públicos do Banco Mundial obtidos de `https://api.worldbank.org/v2/country?format=json&per_page=400`. São 208 referências de países/territórios com coordenadas de capital, usadas como marcadores nacionais, não como localização de surtos municipais.
-
-Reinicie AtlasApplication para carregar os conectores e aguarde a primeira sincronização. Testes cobrem períodos, notificações versus estimativas, ausência versus zero, revisão sem duplicação, preservação após falha, agendamento e permissões.
+[GitHub](https://github.com/samaelsimoes) · [Repositório](https://github.com/samaelsimoes/atlas-health-epidemiologico)
