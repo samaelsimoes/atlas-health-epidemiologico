@@ -1,0 +1,3 @@
+.geo-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}.geo-filters label{display:flex;flex-direction:column;gap:7px;font-size:10px;color:#8da6bc}.geo-filters select{width:100%;font-size:11px}.auth-back{font-size:11px;color:#7acdda;margin-bottom:25px;padding:0}.header-right .logout-button{white-space:nowrap}@media(max-width:550px){.geo-filters{grid-template-columns:1fr;gap:10px}.header-right .connection{display:none}}
+
+@media(min-width:551px) and (max-width:900px){.geo-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}

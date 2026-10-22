@@ -1,0 +1,31 @@
+{
+  "source": "EXEMPLO FICTÍCIO — substitua por sua fonte",
+  "records": [
+    {
+      "country": "Brasil",
+      "state": "São Paulo",
+      "city": "Campinas",
+      "virus": "Dengue",
+      "classification": "Surto",
+      "latitude": -22.9099,
+      "longitude": -47.0626,
+      "cases": 120,
+      "recovered": 90,
+      "deaths": 1,
+      "date": "2026-01-01"
+    },
+    {
+      "country": "Brasil",
+      "state": "Rio de Janeiro",
+      "city": "Niterói",
+      "virus": "Influenza",
+      "classification": "Doença",
+      "latitude": -22.8832,
+      "longitude": -43.1034,
+      "cases": 60,
+      "recovered": 40,
+      "deaths": 0,
+      "date": "2026-01-01"
+    }
+  ]
+}

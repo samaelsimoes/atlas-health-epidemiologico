@@ -1,0 +1,23 @@
+{
+  "name": "atlas-health",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "react": "18.2.0",
+    "react-dom": "18.2.0",
+    "three": "0.149.0",
+    "topojson-client": "3.1.0",
+    "lucide-react": "0.263.1"
+  },
+  "devDependencies": {
+    "vite": "4.5.14"
+  },
+  "engines": {
+    "node": ">=14.18"
+  }
+}

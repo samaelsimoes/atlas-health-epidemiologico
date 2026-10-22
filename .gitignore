@@ -1,0 +1,7 @@
+node_modules/
+dist/
+target/
+.tools/
+backend/data/
+*.log
+.env
