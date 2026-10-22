@@ -1,1 +1,79 @@
-.news-panel h3{margin:14px 0 8px}.news-panel input{width:100%;margin:12px 0}.news-items{max-height:420px;overflow:auto;overscroll-behavior:contain}.news-items a{display:block;padding:14px 0;border-bottom:1px solid #253546;color:inherit;text-decoration:none}.news-items a:hover strong{color:#55d8e7}.news-items small{display:block;color:#8ca0b6;font-size:10px;line-height:1.6}.news-items strong{display:block;font-size:12px;line-height:1.65;font-weight:500;margin-top:5px;overflow-wrap:anywhere}.news-items svg{margin-left:6px;vertical-align:middle}.news-status span{display:block;color:#f6b75c;margin-top:5px}.news-source{display:inline-flex;gap:7px;font-size:11px;color:#55d8e7;align-items:center}.feed-setting{margin:18px 0;padding-bottom:14px;border-bottom:1px solid #253546}.feed-setting label{display:flex;gap:10px;align-items:flex-start;line-height:1.7}.feed-setting input{width:auto;flex-shrink:0;margin-top:5px}.feed-setting small{display:block;color:#8ca0b6;margin-top:8px}.feed-settings .secondary{margin-top:12px}.feed-settings p{overflow-wrap:anywhere}
+.news-panel h3 {
+  margin: 14px 0 8px;
+}
+.news-panel input {
+  width: 100%;
+  margin: 12px 0;
+}
+.news-items {
+  max-height: 420px;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.news-items a {
+  display: block;
+  padding: 14px 0;
+  border-bottom: 1px solid #253546;
+  color: inherit;
+  text-decoration: none;
+}
+.news-items a:hover strong {
+  color: #55d8e7;
+}
+.news-items small {
+  display: block;
+  color: #8ca0b6;
+  font-size: 10px;
+  line-height: 1.6;
+}
+.news-items strong {
+  display: block;
+  font-size: 12px;
+  line-height: 1.65;
+  font-weight: 500;
+  margin-top: 5px;
+  overflow-wrap: anywhere;
+}
+.news-items svg {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.news-status span {
+  display: block;
+  color: #f6b75c;
+  margin-top: 5px;
+}
+.news-source {
+  display: inline-flex;
+  gap: 7px;
+  font-size: 11px;
+  color: #55d8e7;
+  align-items: center;
+}
+.feed-setting {
+  margin: 18px 0;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #253546;
+}
+.feed-setting label {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  line-height: 1.7;
+}
+.feed-setting input {
+  width: auto;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.feed-setting small {
+  display: block;
+  color: #8ca0b6;
+  margin-top: 8px;
+}
+.feed-settings .secondary {
+  margin-top: 12px;
+}
+.feed-settings p {
+  overflow-wrap: anywhere;
+}

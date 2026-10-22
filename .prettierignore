@@ -1,0 +1,6 @@
+**/node_modules/
+**/target/
+**/dist/
+.tools/
+frontend/public/
+backend/src/main/resources/country-locations.json

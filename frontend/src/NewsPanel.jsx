@@ -1,22 +1,201 @@
-import React,{useEffect,useState} from 'react';
-import {Newspaper,ExternalLink,RefreshCw} from 'lucide-react';
-import {request} from './api';
-import {t,formatDateTime} from './i18n/core.mjs';
-import {useLanguage} from './i18n/Language';
+import React, { useEffect, useState } from 'react';
+import { Newspaper, ExternalLink, RefreshCw } from 'lucide-react';
+import { request } from './api';
+import { t, formatDateTime } from './i18n/core.mjs';
+import { useLanguage } from './i18n/Language';
 import './news.css';
-export default function NewsPanel(){
- useLanguage();
- const [data,setData]=useState(null),[error,setError]=useState(false),[query,setQuery]=useState('');
- useEffect(()=>{let alive=true;const load=()=>request('/news').then(d=>{if(alive){setData(d);setError(false);}}).catch(()=>{if(alive)setError(true);});load();const timer=setInterval(load,300000);return()=>{alive=false;clearInterval(timer);};},[]);
- const feed=data?.feeds?.find(f=>f.id==='who');
- const items=(data?.items||[]).filter(n=>n.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
- return <article className="panel news-panel"><div className="section-label">{t('NOTÍCIAS E ALERTAS')}<Newspaper size={16}/></div><h3>{t('Comunicados da OMS')}</h3><p className="footnote">{t('Publicações globais. Notícias não alteram as contagens do globo.')}</p><input aria-label={t('Buscar nos títulos')} placeholder={t('Buscar nos títulos')} value={query} onChange={e=>setQuery(e.target.value)}/><div className="news-items">{items.map(n=><a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer"><small>{n.source} · {formatDateTime(n.publishedAt)}</small><strong>{n.title}<ExternalLink size={12}/></strong></a>)}</div>{!items.length&&<p className="footnote">{t(error?'Notícias indisponíveis. Tentaremos novamente.':data?.items?.length?'Nenhum título corresponde à busca.':'Aguardando a primeira sincronização da OMS.')}</p>}<p className="footnote news-status">{t('Última sincronização:')} {feed?.lastSuccess?formatDateTime(feed.lastSuccess):'—'}{(error||feed?.failed)&&<span>{t('Falha na atualização. Últimos dados preservados.')}</span>}{feed&&!feed.enabled&&<span>{t('Sincronização pausada pelo proprietário.')}</span>}</p><a className="news-source" href="https://www.who.int/emergencies/disease-outbreak-news" target="_blank" rel="noopener noreferrer">{t('Ver fonte oficial')} <ExternalLink size={12}/></a></article>;
+export default function NewsPanel() {
+  useLanguage();
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(false);
+  const [query, setQuery] = useState('');
+  useEffect(() => {
+    let alive = true;
+    const load = () =>
+      request('/news')
+        .then((d) => {
+          if (alive) {
+            setData(d);
+            setError(false);
+          }
+        })
+        .catch(() => {
+          if (alive) setError(true);
+        });
+    load();
+    const timer = setInterval(load, 300000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
+  }, []);
+  const feed = data?.feeds?.find((f) => f.id === 'who');
+  const items = (data?.items || []).filter((n) =>
+    n.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
+  );
+  return (
+    <article className="panel news-panel">
+      <div className="section-label">
+        {t('NOTÍCIAS E ALERTAS')}
+        <Newspaper size={16} />
+      </div>
+      <h3>{t('Comunicados da OMS')}</h3>
+      <p className="footnote">
+        {t('Publicações globais. Notícias não alteram as contagens do globo.')}
+      </p>
+      <input
+        aria-label={t('Buscar nos títulos')}
+        placeholder={t('Buscar nos títulos')}
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="news-items">
+        {items.map((n) => (
+          <a key={n.id} href={n.url} target="_blank" rel="noopener noreferrer">
+            <small>
+              {n.source} · {formatDateTime(n.publishedAt)}
+            </small>
+            <strong>
+              {n.title}
+              <ExternalLink size={12} />
+            </strong>
+          </a>
+        ))}
+      </div>
+      {!items.length && (
+        <p className="footnote">
+          {t(
+            error
+              ? 'Notícias indisponíveis. Tentaremos novamente.'
+              : data?.items?.length
+                ? 'Nenhum título corresponde à busca.'
+                : 'Aguardando a primeira sincronização da OMS.'
+          )}
+        </p>
+      )}
+      <p className="footnote news-status">
+        {t('Última sincronização:')} {feed?.lastSuccess ? formatDateTime(feed.lastSuccess) : '—'}
+        {(error || feed?.failed) && (
+          <span>{t('Falha na atualização. Últimos dados preservados.')}</span>
+        )}
+        {feed && !feed.enabled && <span>{t('Sincronização pausada pelo proprietário.')}</span>}
+      </p>
+      <a
+        className="news-source"
+        href="https://www.who.int/emergencies/disease-outbreak-news"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {t('Ver fonte oficial')} <ExternalLink size={12} />
+      </a>
+    </article>
+  );
 }
-export function FeedSettings(){
- useLanguage();const [feeds,setFeeds]=useState(null),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
- async function load(){try{setFeeds(await request('/feeds'));}catch{setMessage('Não foi possível carregar as fontes. Reinicie o backend atualizado.');}}
- useEffect(()=>{load();},[]);
- async function save(e){e.preventDefault();setBusy(true);setMessage('');try{setFeeds(await request('/feeds',{method:'PUT',body:JSON.stringify({who:feeds.find(f=>f.id==='who').enabled,covid:feeds.find(f=>f.id==='covid').enabled})}));setMessage('Preferências salvas. O agendador verifica as fontes a cada minuto.');}catch{setMessage('Não foi possível salvar as fontes.');}finally{setBusy(false);}}
- async function refresh(){setBusy(true);setMessage('');try{const result=await request('/feeds/news/refresh',{method:'POST'});setMessage(result.success?'Notícias atualizadas.':'Fonte indisponível. Os dados anteriores foram preservados.');await load();}catch{setMessage('Fonte indisponível. Os dados anteriores foram preservados.');}finally{setBusy(false);}}
- return <article className="panel feed-settings"><Newspaper size={28} className="cyan"/><h2>{t('Atualizações automáticas')}</h2><p>{t('Enquanto o backend estiver ligado, consulta as fontes nos intervalos abaixo.')}</p>{feeds&&<form onSubmit={save}>{feeds.map(f=><div className="feed-setting" key={f.id}><label><input type="checkbox" disabled={busy} checked={f.enabled} onChange={e=>setFeeds(feeds.map(v=>v.id===f.id?{...v,enabled:e.target.checked}:v))}/>{t(f.id==='who'?'OMS · notícias a cada 30 minutos':'disease.sh · COVID-19 por país a cada 6 horas')}</label><small>{t('Última sincronização:')} {f.lastSuccess?formatDateTime(f.lastSuccess):'—'}</small>{f.failed&&<small>{t('Falha na atualização. Últimos dados preservados.')}</small>}</div>)}<button className="primary" disabled={busy}>{t('Salvar preferências')}</button></form>}<button className="secondary" disabled={busy||!feeds} onClick={refresh}><RefreshCw size={15}/>{t('Buscar notícias agora')}</button><p className="footnote">{t('A OMS fornece comunicados, em seu idioma original. COVID-19 usa totais nacionais da disease.sh, não dados de cidades. A data do provedor é preservada; sincronização não significa dados recentes.')}</p><p className="footnote">{t('Outras doenças, estados e cidades podem ser cadastrados ou importados por JSON. Nenhuma contagem é extraída automaticamente de manchetes.')}</p>{message&&<p role="status">{t(message)}</p>}</article>;
+export function FeedSettings() {
+  useLanguage();
+  const [feeds, setFeeds] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState('');
+  async function load() {
+    try {
+      setFeeds(await request('/feeds'));
+    } catch {
+      setMessage('Não foi possível carregar as fontes. Reinicie o backend atualizado.');
+    }
+  }
+  useEffect(() => {
+    load();
+  }, []);
+  async function save(e) {
+    e.preventDefault();
+    setBusy(true);
+    setMessage('');
+    try {
+      setFeeds(
+        await request('/feeds', {
+          method: 'PUT',
+          body: JSON.stringify({
+            who: feeds.find((f) => f.id === 'who').enabled,
+            covid: feeds.find((f) => f.id === 'covid').enabled,
+          }),
+        })
+      );
+      setMessage('Preferências salvas. O agendador verifica as fontes a cada minuto.');
+    } catch {
+      setMessage('Não foi possível salvar as fontes.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function refresh() {
+    setBusy(true);
+    setMessage('');
+    try {
+      const result = await request('/feeds/news/refresh', { method: 'POST' });
+      setMessage(
+        result.success
+          ? 'Notícias atualizadas.'
+          : 'Fonte indisponível. Os dados anteriores foram preservados.'
+      );
+      await load();
+    } catch {
+      setMessage('Fonte indisponível. Os dados anteriores foram preservados.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <article className="panel feed-settings">
+      <Newspaper size={28} className="cyan" />
+      <h2>{t('Atualizações automáticas')}</h2>
+      <p>{t('Enquanto o backend estiver ligado, consulta as fontes nos intervalos abaixo.')}</p>
+      {feeds && (
+        <form onSubmit={save}>
+          {feeds.map((f) => (
+            <div className="feed-setting" key={f.id}>
+              <label>
+                <input
+                  type="checkbox"
+                  disabled={busy}
+                  checked={f.enabled}
+                  onChange={(e) =>
+                    setFeeds(
+                      feeds.map((v) => (v.id === f.id ? { ...v, enabled: e.target.checked } : v))
+                    )
+                  }
+                />
+                {t(
+                  f.id === 'who'
+                    ? 'OMS · notícias a cada 30 minutos'
+                    : 'disease.sh · COVID-19 por país a cada 6 horas'
+                )}
+              </label>
+              <small>
+                {t('Última sincronização:')} {f.lastSuccess ? formatDateTime(f.lastSuccess) : '—'}
+              </small>
+              {f.failed && <small>{t('Falha na atualização. Últimos dados preservados.')}</small>}
+            </div>
+          ))}
+          <button className="primary" disabled={busy}>
+            {t('Salvar preferências')}
+          </button>
+        </form>
+      )}
+      <button className="secondary" disabled={busy || !feeds} onClick={refresh}>
+        <RefreshCw size={15} />
+        {t('Buscar notícias agora')}
+      </button>
+      <p className="footnote">
+        {t(
+          'A OMS fornece comunicados, em seu idioma original. COVID-19 usa totais nacionais da disease.sh, não dados de cidades. A data do provedor é preservada; sincronização não significa dados recentes.'
+        )}
+      </p>
+      <p className="footnote">
+        {t(
+          'Outras doenças, estados e cidades podem ser cadastrados ou importados por JSON. Nenhuma contagem é extraída automaticamente de manchetes.'
+        )}
+      </p>
+      {message && <p role="status">{t(message)}</p>}
+    </article>
+  );
 }

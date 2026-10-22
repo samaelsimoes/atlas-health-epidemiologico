@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "build": "vite build",
-    "preview": "vite preview --host 127.0.0.1"
+    "preview": "vite preview --host 127.0.0.1",
+    "format": "prettier --config ../.prettierrc.json --plugin=prettier-plugin-java --write \"src/**/*.{js,jsx,mjs,css}\" \"scripts/**/*.mjs\" \"../backend/src/**/*.java\" \"../examples/*.json\" index.html vite.config.js package.json ../.prettierrc.json",
+    "format:check": "prettier --config ../.prettierrc.json --plugin=prettier-plugin-java --check \"src/**/*.{js,jsx,mjs,css}\" \"scripts/**/*.mjs\" \"../backend/src/**/*.java\" \"../examples/*.json\" index.html vite.config.js package.json ../.prettierrc.json"
   },
   "dependencies": {
     "react": "18.2.0",
@@ -15,6 +17,8 @@
     "lucide-react": "0.263.1"
   },
   "devDependencies": {
+    "prettier": "3.3.3",
+    "prettier-plugin-java": "2.3.0",
     "vite": "4.5.14"
   },
   "engines": {

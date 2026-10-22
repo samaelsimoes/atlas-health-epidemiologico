@@ -236,6 +236,19 @@ mvn -Datlas.feeds.initial-delay=3600000 test
 
 A propriedade acima adia o agendador durante os testes. A suíte cobre autenticação, CSRF, validação, importação transacional, revisão sem duplicação, períodos, agendamento e preservação de dados após falhas.
 
+## Padrão de código
+
+A formatação é definida por `.editorconfig` e `.prettierrc.json`: dois espaços no frontend e quatro no Java. O Prettier e o plugin Java estão fixados em versões verificadas com Node 14.21.3.
+
+Execute na pasta `frontend` para formatar HTML, JavaScript, JSX, CSS, JSON e Java:
+
+```bash
+npm run format
+npm run format:check
+```
+
+O primeiro comando aplica o padrão; o segundo verifica sem modificar arquivos. As explicações de fontes, limitações e operação ficam neste README.
+
 ## Solução de problemas
 
 | Sintoma | O que conferir |
